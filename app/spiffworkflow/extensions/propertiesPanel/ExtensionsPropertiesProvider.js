@@ -416,7 +416,7 @@ function createSignalButtonGroup (
 function createServiceGroup(element, translate, moddle, commandStack) {
   return {
     id: 'service_task_properties',
-    label: translate('Spiffworkflow Service Properties'),
+    label: translate('Workflow Service Properties'),
     entries: [
       {
         element,
