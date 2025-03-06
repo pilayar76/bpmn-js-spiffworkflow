@@ -211,16 +211,24 @@ export function ServiceTaskOperatorSelect(props) {
         }
     });
 
-    // ✅ Convert groupedOptions into an array for SelectEntry
-    const categorizedOptions = Object.entries(groupedOptions)
-        .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
-        .reduce((acc, [category, options]) => {
-            acc.push({ label: `--- ${category} ---`, value: null, disabled: true });  // ✅ Group Header (Non-selectable)
-            return acc.concat(options);  // Merge items
-        }, []);
+    // ✅ Convert groupedOptions into an array for SelectEntry (Flatten properly)
+    let categorizedOptions = [];
 
-    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No matching results", value: null, disabled: true }];
+    Object.entries(groupedOptions)
+        .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
+        .forEach(([category, options]) => {
+            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });  // ✅ Group Header (Non-selectable)
+            categorizedOptions = categorizedOptions.concat(options); // ✅ Add actual options under the header
+        });
+
+    // ✅ Ensure at least one option is present, otherwise show "No results"
+    if (categorizedOptions.length === 0) {
+        categorizedOptions.push({ label: "No matching results", value: "", disabled: true });
+    }
+
+    return categorizedOptions;
 };
+
 
 
 
@@ -230,9 +238,9 @@ export function ServiceTaskOperatorSelect(props) {
     label: translate('Operator ID'),
     getValue,
     setValue,
-    getOptions: (searchTerm) => getOptions(searchTerm),  // ✅ Enable search functionality,
+    getOptions: () => getOptions(searchTerm),  // ✅ Ensure proper function call
     debounce,
-  });
+});
 }
 
 export function ServiceTaskParameterArray(props) {
@@ -277,14 +285,22 @@ function ServiceTaskParameterTextField(props) {
   const debounce = useService('debounceInput');
 
   const setValue = (value) => {
+    if (!value) return;  // ✅ Prevent selecting invalid options
+
+    const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
+    if (!serviceTaskOperator) {
+        console.error(`Could not find service task operator with id: ${value}`);
+        return;
+    }
+
+    // ✅ Ensure BPMN model is updated properly
     commandStack.execute('element.updateModdleProperties', {
-      element,
-      moddleElement: serviceTaskParameterModdleElement,
-      properties: {
-        value: value,
-      },
+        element,
+        moddleElement: element.businessObject,
+        properties: { serviceTaskOperatorId: value },
     });
-  };
+};
+
 
 
   const getValue = () => {
