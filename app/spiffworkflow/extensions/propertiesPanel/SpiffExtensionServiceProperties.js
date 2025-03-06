@@ -184,12 +184,17 @@ export function ServiceTaskOperatorSelect(props) {
             // ✅ Manually categorize based on `id` patterns
             if (sto.id.toLowerCase().includes("slack") || sto.id.toLowerCase().includes("email")) {
                 category = "Messaging";
-            } else if (sto.id.toLowerCase().includes("ai") || sto.id.toLowerCase().includes("ml") || sto.id.toLowerCase().includes("recognition")) {
-                category = "AI Tasks";
-            } else if (sto.id.toLowerCase().includes("process") || sto.id.toLowerCase().includes("data")) {
+            } else if (sto.id.toLowerCase().includes("dial")) {
+                category = "Dial";
+            } else if (sto.id.toLowerCase().includes("http") || sto.id.toLowerCase().includes("data")) {
                 category = "Data Processing";
+              else if (sto.id.toLowerCase().includes("spark") || sto.id.toLowerCase().includes("data")) {
+                category = "Spark";
+            }
             } else if (sto.id.toLowerCase().includes("utility") || sto.id.toLowerCase().includes("generic")) {
                 category = "Utility Tasks";
+            } else {
+                category = "Others"
             }
 
             // ✅ Apply search filter (case-insensitive)
