@@ -191,7 +191,6 @@ export function ServiceTaskOperatorSelect(props) {
             }
               else if (sto.id.toLowerCase().includes("spark") || sto.id.toLowerCase().includes("data")) {
                 category = "Spark";
-            }
             } else if (sto.id.toLowerCase().includes("utility") || sto.id.toLowerCase().includes("generic")) {
                 category = "Utility Tasks";
             } else {
