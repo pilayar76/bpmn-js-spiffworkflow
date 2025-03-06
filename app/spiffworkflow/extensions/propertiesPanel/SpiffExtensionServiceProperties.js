@@ -188,6 +188,7 @@ export function ServiceTaskOperatorSelect(props) {
                 category = "Dial";
             } else if (sto.id.toLowerCase().includes("http") || sto.id.toLowerCase().includes("data")) {
                 category = "Data Processing";
+            }
               else if (sto.id.toLowerCase().includes("spark") || sto.id.toLowerCase().includes("data")) {
                 category = "Spark";
             }
