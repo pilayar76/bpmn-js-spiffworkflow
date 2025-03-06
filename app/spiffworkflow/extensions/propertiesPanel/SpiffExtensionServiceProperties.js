@@ -168,18 +168,52 @@ export function ServiceTaskOperatorSelect(props) {
     });
   };
 
-  const getOptions = () => {
-    const optionList = [];
-    if (serviceTaskOperators) {
-      serviceTaskOperators.forEach((sto) => {
-        optionList.push({
-          label: sto.id,
-          value: sto.id,
+  const getOptions = (searchTerm = "") => {
+    const groupedOptions = {
+        "Messaging": [],
+        "AI Tasks": [],
+        "Data Processing": [],
+        "Utility Tasks": [],
+        "Uncategorized": []
+    };
+
+    if (serviceTaskOperators.length > 0) {
+        serviceTaskOperators.forEach((sto) => {
+            let category = "Uncategorized";  // Default category
+
+            // ✅ Manually categorize based on `id` patterns
+            if (sto.id.toLowerCase().includes("slack") || sto.id.toLowerCase().includes("email")) {
+                category = "Messaging";
+            } else if (sto.id.toLowerCase().includes("ai") || sto.id.toLowerCase().includes("ml") || sto.id.toLowerCase().includes("recognition")) {
+                category = "AI Tasks";
+            } else if (sto.id.toLowerCase().includes("process") || sto.id.toLowerCase().includes("data")) {
+                category = "Data Processing";
+            } else if (sto.id.toLowerCase().includes("utility") || sto.id.toLowerCase().includes("generic")) {
+                category = "Utility Tasks";
+            }
+
+            // ✅ Apply search filter (case-insensitive)
+            if (searchTerm === "" || sto.id.toLowerCase().includes(searchTerm.toLowerCase())) {
+                groupedOptions[category].push({
+                    label: sto.id,
+                    value: sto.id
+                });
+            }
         });
-      });
     }
-    return optionList;
-  };
+
+    // ✅ Convert groupedOptions into an array for SelectEntry
+    const categorizedOptions = Object.keys(groupedOptions)
+        .filter(category => groupedOptions[category].length > 0)  // ✅ Only show non-empty categories
+        .map((category) => [
+            { label: `--- ${category} ---`, value: null, disabled: true },  // ✅ Group Header (Non-selectable)
+            ...groupedOptions[category]
+        ])
+        .flat();  // ✅ Flatten to merge headers & items properly
+
+    return categorizedOptions;
+};
+
 
   return SelectEntry({
     id: 'selectOperatorId',
@@ -187,7 +221,7 @@ export function ServiceTaskOperatorSelect(props) {
     label: translate('Operator ID'),
     getValue,
     setValue,
-    getOptions,
+    getOptions: (searchTerm) => getOptions(searchTerm),  // ✅ Enable search functionality,
     debounce,
   });
 }
