@@ -187,9 +187,8 @@ export function ServiceTaskOperatorSelect(props) {
         if (!sto.id) return; // Skip invalid entries
 
         let category = "Others";  // Default category
-
-        // ✅ Manually categorize based on `id` patterns
         const lowerId = sto.id.toLowerCase();
+
         if (lowerId.includes("slack") || lowerId.includes("email")) {
             category = "Messaging";
         } else if (lowerId.includes("dial")) {
@@ -203,7 +202,7 @@ export function ServiceTaskOperatorSelect(props) {
         }
 
         // ✅ Apply search filter (case-insensitive)
-        if (searchTerm === "" || lowerId.includes(searchTerm.toLowerCase())) {
+        if (!searchTerm || lowerId.includes(searchTerm.toLowerCase())) {
             groupedOptions[category].push({
                 label: sto.id,
                 value: sto.id
@@ -213,34 +212,28 @@ export function ServiceTaskOperatorSelect(props) {
 
     // ✅ Convert groupedOptions into an array for SelectEntry (Flatten properly)
     let categorizedOptions = [];
-
     Object.entries(groupedOptions)
         .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
         .forEach(([category, options]) => {
-            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });  // ✅ Group Header (Non-selectable)
-            categorizedOptions = categorizedOptions.concat(options); // ✅ Add actual options under the header
+            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
+            categorizedOptions = categorizedOptions.concat(options);
         });
 
     // ✅ Ensure at least one option is present, otherwise show "No results"
-    if (categorizedOptions.length === 0) {
-        categorizedOptions.push({ label: "No matching results", value: "", disabled: true });
-    }
-
-    return categorizedOptions;
+    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No matching results", value: "", disabled: true }];
 };
 
 
-
-
-  return SelectEntry({
+return SelectEntry({
     id: 'selectOperatorId',
     element,
     label: translate('Operator ID'),
     getValue,
     setValue,
-    getOptions: () => getOptions(searchTerm),  // ✅ Ensure proper function call
+    getOptions: (searchTerm) => getOptions(searchTerm || ""),  // ✅ Ensure searchTerm is always defined
     debounce,
 });
+
 }
 
 export function ServiceTaskParameterArray(props) {
