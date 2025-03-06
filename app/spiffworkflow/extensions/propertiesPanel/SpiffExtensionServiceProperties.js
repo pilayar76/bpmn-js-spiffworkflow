@@ -169,55 +169,59 @@ export function ServiceTaskOperatorSelect(props) {
   };
 
   const getOptions = (searchTerm = "") => {
-    const groupedOptions = {
-        "Messaging": [],
-        "AI Tasks": [],
-        "Data Processing": [],
-        "Utility Tasks": [],
-        "Uncategorized": []
-    };
-
-    if (serviceTaskOperators.length > 0) {
-        serviceTaskOperators.forEach((sto) => {
-            let category = "Uncategorized";  // Default category
-
-            // ✅ Manually categorize based on `id` patterns
-            if (sto.id.toLowerCase().includes("slack") || sto.id.toLowerCase().includes("email")) {
-                category = "Messaging";
-            } else if (sto.id.toLowerCase().includes("dial")) {
-                category = "Dial";
-            } else if (sto.id.toLowerCase().includes("http") || sto.id.toLowerCase().includes("data")) {
-                category = "Data Processing";
-            }
-              else if (sto.id.toLowerCase().includes("spark") || sto.id.toLowerCase().includes("data")) {
-                category = "Spark";
-            } else if (sto.id.toLowerCase().includes("utility") || sto.id.toLowerCase().includes("generic")) {
-                category = "Utility Tasks";
-            } else {
-                category = "Others"
-            }
-
-            // ✅ Apply search filter (case-insensitive)
-            if (searchTerm === "" || sto.id.toLowerCase().includes(searchTerm.toLowerCase())) {
-                groupedOptions[category].push({
-                    label: sto.id,
-                    value: sto.id
-                });
-            }
-        });
+    if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
+        console.error("Error: serviceTaskOperators is empty or not an array.");
+        return [];
     }
 
-    // ✅ Convert groupedOptions into an array for SelectEntry
-    const categorizedOptions = Object.keys(groupedOptions)
-        .filter(category => groupedOptions[category].length > 0)  // ✅ Only show non-empty categories
-        .map((category) => [
-            { label: `--- ${category} ---`, value: null, disabled: true },  // ✅ Group Header (Non-selectable)
-            ...groupedOptions[category]
-        ])
-        .flat();  // ✅ Flatten to merge headers & items properly
+    const groupedOptions = {
+        "Messaging": [],
+        "Dial": [],
+        "Data Processing": [],
+        "Spark": [],
+        "Utility Tasks": [],
+        "Others": []
+    };
 
-    return categorizedOptions;
+    serviceTaskOperators.forEach((sto) => {
+        if (!sto.id) return; // Skip invalid entries
+
+        let category = "Others";  // Default category
+
+        // ✅ Manually categorize based on `id` patterns
+        const lowerId = sto.id.toLowerCase();
+        if (lowerId.includes("slack") || lowerId.includes("email")) {
+            category = "Messaging";
+        } else if (lowerId.includes("dial")) {
+            category = "Dial";
+        } else if (lowerId.includes("http")) {
+            category = "Data Processing";
+        } else if (lowerId.includes("spark")) {
+            category = "Spark";
+        } else if (lowerId.includes("utility") || lowerId.includes("generic")) {
+            category = "Utility Tasks";
+        }
+
+        // ✅ Apply search filter (case-insensitive)
+        if (searchTerm === "" || lowerId.includes(searchTerm.toLowerCase())) {
+            groupedOptions[category].push({
+                label: sto.id,
+                value: sto.id
+            });
+        }
+    });
+
+    // ✅ Convert groupedOptions into an array for SelectEntry
+    const categorizedOptions = Object.entries(groupedOptions)
+        .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
+        .reduce((acc, [category, options]) => {
+            acc.push({ label: `--- ${category} ---`, value: null, disabled: true });  // ✅ Group Header (Non-selectable)
+            return acc.concat(options);  // Merge items
+        }, []);
+
+    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No matching results", value: null, disabled: true }];
 };
+
 
 
   return SelectEntry({
