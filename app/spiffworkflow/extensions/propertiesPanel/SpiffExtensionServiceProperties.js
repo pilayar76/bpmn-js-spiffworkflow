@@ -189,14 +189,24 @@ export function ServiceTaskOperatorSelect(props) {
 
         let category = "Others";  // Default category
 
-        if (sto.id.includes("slack") || sto.id.includes("email")) {
-            category = "Messaging";
+        if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) {
+            category = "Notification";
         } else if (sto.id.includes("dial")) {
             category = "Dial";
+        } else if (sto.id.includes("dne")) {
+            category = "DNE Core";
         } else if (sto.id.includes("http")) {
             category = "Data Processing";
         } else if (sto.id.includes("spark")) {
-            category = "Spark";
+            category = "Spark Proxy";
+        } else if (sto.id.includes("kafka")) {
+            category = "Broker";
+        } else if (sto.id.includes("aws")) {
+            category = "AWS";
+        } else if (sto.id.includes("plannet")) {
+            category = "3rd Party Connectors";
+        } else if (sto.id.includes("mysql")) {
+            category = "Database";
         } else if (sto.id.includes("utility") || sto.id.includes("generic")) {
             category = "Utility Tasks";
         }
