@@ -168,7 +168,8 @@ export function ServiceTaskOperatorSelect(props) {
     });
   };
 
-  const getOptions = (searchTerm = "") => {
+  const getOptions = () => {
+      console.error("Service Tasks", serviceTaskOperators);
     if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
         console.error("Error: serviceTaskOperators is empty or not an array.");
         return [];
@@ -187,41 +188,36 @@ export function ServiceTaskOperatorSelect(props) {
         if (!sto.id) return; // Skip invalid entries
 
         let category = "Others";  // Default category
-        const lowerId = sto.id.toLowerCase();
 
-        if (lowerId.includes("slack") || lowerId.includes("email")) {
+        if (sto.id.includes("slack") || sto.id.includes("email")) {
             category = "Messaging";
-        } else if (lowerId.includes("dial")) {
+        } else if (sto.id.includes("dial")) {
             category = "Dial";
-        } else if (lowerId.includes("http")) {
+        } else if (sto.id.includes("http")) {
             category = "Data Processing";
-        } else if (lowerId.includes("spark")) {
+        } else if (sto.id.includes("spark")) {
             category = "Spark";
-        } else if (lowerId.includes("utility") || lowerId.includes("generic")) {
+        } else if (sto.id.includes("utility") || sto.id.includes("generic")) {
             category = "Utility Tasks";
         }
 
-        // ✅ Apply search filter (case-insensitive)
-        if (!searchTerm || lowerId.includes(searchTerm.toLowerCase())) {
-            groupedOptions[category].push({
-                label: sto.id,
-                value: sto.id
-            });
-        }
+        groupedOptions[category].push({
+            label: sto.id,
+            value: sto.id
+        });
     });
 
-    // ✅ Convert groupedOptions into an array for SelectEntry (Flatten properly)
     let categorizedOptions = [];
     Object.entries(groupedOptions)
-        .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
+        .filter(([_, options]) => options.length > 0)
         .forEach(([category, options]) => {
             categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
             categorizedOptions = categorizedOptions.concat(options);
         });
 
-    // ✅ Ensure at least one option is present, otherwise show "No results"
-    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No matching results", value: "", disabled: true }];
+    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No available options", value: "", disabled: true }];
 };
+
 
 
 return SelectEntry({
@@ -230,9 +226,11 @@ return SelectEntry({
     label: translate('Operator ID'),
     getValue,
     setValue,
-    getOptions: (searchTerm) => getOptions(searchTerm || ""),  // ✅ Ensure searchTerm is always defined
+    getOptions: getOptions,  // ✅ No searchTerm needed
     debounce,
+    single: true  // ✅ Ensures single selection
 });
+
 
 }
 
