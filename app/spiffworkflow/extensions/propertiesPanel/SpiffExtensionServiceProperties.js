@@ -176,10 +176,15 @@ export function ServiceTaskOperatorSelect(props) {
     }
 
     const groupedOptions = {
-        "Messaging": [],
+        "Notification": [],
         "Dial": [],
+        "DNE Core": [],
         "Data Processing": [],
-        "Spark": [],
+        "Spark Proxy": [],
+        "Broker": [],
+        "AWS": [],
+        "3rd Party Connectors": [],
+        "Database": [],
         "Utility Tasks": [],
         "Others": []
     };
