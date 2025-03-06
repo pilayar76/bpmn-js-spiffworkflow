@@ -4,41 +4,11 @@ import { SPIFFWORKFLOW_XML_NAMESPACE } from '../../constants';
 
 let serviceTaskOperators = [];
 
-// This stores the parameters for a given service task operator
-//  so that we can remember the values when switching between them
-// the values should be the list of moddle elements that we push onto
-//  the parameterList of service task operator and the key should be
-//  the service task operator id
 const previouslyUsedServiceTaskParameterValuesHash = {};
 
-const LOW_PRIORITY = 500;
-// I'm not going to change these variable names, but this is actually the name of the modeller
-// type (as defined in moddle/spiffworkflow.json) NOT the element name (which is lowercase)
 const SERVICE_TASK_OPERATOR_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:ServiceTaskOperator`;
 const SERVICE_TASK_PARAMETERS_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameters`;
 const SERVICE_TASK_PARAMETER_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameter`;
-
-/**
- * A generic properties' editor for text input.
- * Allows you to provide additional SpiffWorkflow extension properties.  Just
- * uses whatever name is provide on the property, and adds or updates it as
- * needed.
- *
- *
-    <bpmn:serviceTask id="service_task_one" name="Service Task One">
-      <bpmn:extensionElements>
-        <spiffworkflow:serviceTaskOperator id="SlackWebhookOperator" resultVariable="result">
-          <spiffworkflow:parameters>
-            <spiffworkflow:parameter name="webhook_token" type="string" value="token" />
-            <spiffworkflow:parameter name="message" type="string" value="ServiceTask testing" />
-            <spiffworkflow:parameter name="channel" type="string" value="#" />
-          </spiffworkflow:parameters>
-        </spiffworkflow:serviceTaskOperator>
-      </bpmn:extensionElements>
-    </bpmn:serviceTask>
- *
- * @returns {string|null|*}
- */
 
 function requestServiceTaskOperators(eventBus, element, commandStack) {
   eventBus.fire('spiff.service_tasks.requested', { eventBus });
@@ -52,113 +22,70 @@ function requestServiceTaskOperators(eventBus, element, commandStack) {
 function getServiceTaskOperatorModdleElement(shapeElement) {
   const { extensionElements } = shapeElement.businessObject;
   if (extensionElements) {
-    for (const ee of extensionElements.values) {
-      if (ee.$type === SERVICE_TASK_OPERATOR_ELEMENT_NAME) {
-        return ee;
-      }
-    }
+    return extensionElements.values.find(ee => ee.$type === SERVICE_TASK_OPERATOR_ELEMENT_NAME) || null;
   }
   return null;
 }
 
 function getServiceTaskParameterModdleElements(shapeElement) {
-  const serviceTaskOperatorModdleElement =
-    getServiceTaskOperatorModdleElement(shapeElement);
-  if (serviceTaskOperatorModdleElement) {
-    const { parameterList } = serviceTaskOperatorModdleElement;
-    if (parameterList) {
-      return parameterList.parameters;
-    }
-  }
-  return [];
+  const serviceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(shapeElement);
+  return serviceTaskOperatorModdleElement?.parameterList?.parameters || [];
 }
 
 export function ServiceTaskOperatorSelect(props) {
-  const { element } = props;
-  const { commandStack } = props;
-  const { translate } = props;
-  const { moddle } = props;
+  const { element, commandStack, translate, moddle } = props;
 
   const debounce = useService('debounceInput');
   const eventBus = useService('eventBus');
 
-  if (serviceTaskOperators.length === 0) {
+  if (!serviceTaskOperators.length) {
     requestServiceTaskOperators(eventBus, element, commandStack);
   }
 
   const getValue = () => {
-    const serviceTaskOperatorModdleElement =
-      getServiceTaskOperatorModdleElement(element);
-    if (serviceTaskOperatorModdleElement) {
-      return serviceTaskOperatorModdleElement.id;
-    }
-    return '';
+    const serviceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(element);
+    return serviceTaskOperatorModdleElement?.id || '';
   };
 
   const setValue = (value) => {
-    if (!value) {
-      return;
-    }
+    if (!value) return;
 
-    const serviceTaskOperator = serviceTaskOperators.find(
-      (sto) => sto.id === value
-    );
+    const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
     if (!serviceTaskOperator) {
       console.error(`Could not find service task operator with id: ${value}`);
       return;
     }
-    if (!(element.businessObject.id in previouslyUsedServiceTaskParameterValuesHash)) {
-      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id] = {}
-    }
-    const previouslyUsedServiceTaskParameterValues =
-      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value];
 
+    if (!previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id]) {
+      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id] = {};
+    }
+
+    const previouslyUsedServiceTaskParameterValues = previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value];
     const { businessObject } = element;
-    let extensions = businessObject.extensionElements;
-    if (!extensions) {
-      extensions = moddle.create('bpmn:ExtensionElements');
-    }
+    let extensions = businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
 
-    const oldServiceTaskOperatorModdleElement =
-      getServiceTaskOperatorModdleElement(element);
-
-    const newServiceTaskOperatorModdleElement = moddle.create(
-      SERVICE_TASK_OPERATOR_ELEMENT_NAME
-    );
+    const oldServiceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(element);
+    const newServiceTaskOperatorModdleElement = moddle.create(SERVICE_TASK_OPERATOR_ELEMENT_NAME);
     newServiceTaskOperatorModdleElement.id = value;
-    let newParameterList;
 
-    if (previouslyUsedServiceTaskParameterValues) {
-      newParameterList = previouslyUsedServiceTaskParameterValues;
-    } else {
-      newParameterList = moddle.create(SERVICE_TASK_PARAMETERS_ELEMENT_NAME);
-      newParameterList.parameters = [];
-      serviceTaskOperator.parameters.forEach((stoParameter) => {
-        const newParameterModdleElement = moddle.create(
-          SERVICE_TASK_PARAMETER_ELEMENT_NAME
-        );
+    let newParameterList = previouslyUsedServiceTaskParameterValues || moddle.create(SERVICE_TASK_PARAMETERS_ELEMENT_NAME);
+    if (!previouslyUsedServiceTaskParameterValues) {
+      newParameterList.parameters = serviceTaskOperator.parameters.map(stoParameter => {
+        const newParameterModdleElement = moddle.create(SERVICE_TASK_PARAMETER_ELEMENT_NAME);
         newParameterModdleElement.id = stoParameter.id;
         newParameterModdleElement.type = stoParameter.type;
-        newParameterList.parameters.push(newParameterModdleElement);
+        return newParameterModdleElement;
       });
 
-      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][
-        value
-      ] = newParameterList;
+      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value] = newParameterList;
       if (oldServiceTaskOperatorModdleElement) {
-        previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][
-          oldServiceTaskOperatorModdleElement.id
-        ] = oldServiceTaskOperatorModdleElement.parameterList;
+        previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][oldServiceTaskOperatorModdleElement.id] = oldServiceTaskOperatorModdleElement.parameterList;
       }
     }
 
     newServiceTaskOperatorModdleElement.parameterList = newParameterList;
-
-    const newExtensionValues = extensions.get('values').filter((extValue) => {
-      return extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME;
-    });
-    newExtensionValues.push(newServiceTaskOperatorModdleElement);
-    extensions.values = newExtensionValues;
+    extensions.values = extensions.get('values').filter(extValue => extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME);
+    extensions.values.push(newServiceTaskOperatorModdleElement);
     businessObject.extensionElements = extensions;
 
     commandStack.execute('element.updateModdleProperties', {
@@ -169,68 +96,50 @@ export function ServiceTaskOperatorSelect(props) {
   };
 
   const getOptions = (searchTerm = "") => {
-    if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
-        console.error("Error: serviceTaskOperators is empty or not an array.");
-        return [];
-    }
+    if (!Array.isArray(serviceTaskOperators) || !serviceTaskOperators.length) return [];
 
     const groupedOptions = {
-        "Messaging": [],
-        "Dial": [],
-        "Data Processing": [],
-        "Spark": [],
-        "Utility Tasks": [],
-        "Others": []
+      "Messaging": [],
+      "Dial": [],
+      "Data Processing": [],
+      "Spark": [],
+      "Utility Tasks": [],
+      "Others": []
     };
 
     serviceTaskOperators.forEach((sto) => {
-        if (!sto.id) return; // Skip invalid entries
+      if (!sto.id) return;
+      const lowerId = sto.id.toLowerCase();
+      let category = "Others";
 
-        let category = "Others";  // Default category
+      if (lowerId.includes("slack") || lowerId.includes("email")) {
+        category = "Messaging";
+      } else if (lowerId.includes("dial")) {
+        category = "Dial";
+      } else if (lowerId.includes("http")) {
+        category = "Data Processing";
+      } else if (lowerId.includes("spark")) {
+        category = "Spark";
+      } else if (lowerId.includes("utility") || lowerId.includes("generic")) {
+        category = "Utility Tasks";
+      }
 
-        // ✅ Manually categorize based on `id` patterns
-        const lowerId = sto.id.toLowerCase();
-        if (lowerId.includes("slack") || lowerId.includes("email")) {
-            category = "Messaging";
-        } else if (lowerId.includes("dial")) {
-            category = "Dial";
-        } else if (lowerId.includes("http")) {
-            category = "Data Processing";
-        } else if (lowerId.includes("spark")) {
-            category = "Spark";
-        } else if (lowerId.includes("utility") || lowerId.includes("generic")) {
-            category = "Utility Tasks";
-        }
-
-        // ✅ Apply search filter (case-insensitive)
-        if (searchTerm === "" || lowerId.includes(searchTerm.toLowerCase())) {
-            groupedOptions[category].push({
-                label: sto.id,
-                value: sto.id
-            });
-        }
+      if (searchTerm === "" || lowerId.includes(searchTerm.toLowerCase())) {
+        groupedOptions[category].push({ label: sto.id, value: sto.id });
+      }
     });
 
-    // ✅ Convert groupedOptions into an array for SelectEntry (Flatten properly)
     let categorizedOptions = [];
 
     Object.entries(groupedOptions)
-        .filter(([_, options]) => options.length > 0) // ✅ Only show non-empty categories
-        .forEach(([category, options]) => {
-            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });  // ✅ Group Header (Non-selectable)
-            categorizedOptions = categorizedOptions.concat(options); // ✅ Add actual options under the header
-        });
+      .filter(([_, options]) => options.length > 0)
+      .forEach(([category, options]) => {
+        categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
+        categorizedOptions = categorizedOptions.concat(options);
+      });
 
-    // ✅ Ensure at least one option is present, otherwise show "No results"
-    if (categorizedOptions.length === 0) {
-        categorizedOptions.push({ label: "No matching results", value: "", disabled: true });
-    }
-
-    return categorizedOptions;
-};
-
-
-
+    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No matching results", value: "", disabled: true }];
+  };
 
   return SelectEntry({
     id: 'selectOperatorId',
@@ -238,120 +147,51 @@ export function ServiceTaskOperatorSelect(props) {
     label: translate('Operator ID'),
     getValue,
     setValue,
-    getOptions: () => getOptions(searchTerm),  // ✅ Ensure proper function call
-    debounce,
-});
-}
-
-export function ServiceTaskParameterArray(props) {
-  const { element, commandStack } = props;
-
-  const serviceTaskParameterModdleElements =
-    getServiceTaskParameterModdleElements(element);
-  const items = serviceTaskParameterModdleElements.map(
-    (serviceTaskParameterModdleElement, index) => {
-      const id = `serviceTaskParameter-${index}`;
-      return {
-        id,
-        label: serviceTaskParameterModdleElement.id,
-        entries: serviceTaskParameterEntries({
-          idPrefix: id,
-          element,
-          serviceTaskParameterModdleElement,
-          commandStack,
-        }),
-        autoFocusEntry: id,
-      };
-    }
-  );
-  return { items };
-}
-
-function serviceTaskParameterEntries(props) {
-  const { idPrefix, serviceTaskParameterModdleElement, commandStack } = props;
-  return [
-    {
-      idPrefix: `${idPrefix}-parameter`,
-      component: ServiceTaskParameterTextField,
-      serviceTaskParameterModdleElement,
-      commandStack,
-    },
-  ];
-}
-
-function ServiceTaskParameterTextField(props) {
-  const { idPrefix, element, serviceTaskParameterModdleElement, commandStack } = props;
-
-  const debounce = useService('debounceInput');
-
-  const setValue = (value) => {
-    if (!value) return;  // ✅ Prevent selecting invalid options
-
-    const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
-    if (!serviceTaskOperator) {
-        console.error(`Could not find service task operator with id: ${value}`);
-        return;
-    }
-
-    // ✅ Ensure BPMN model is updated properly
-    commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: element.businessObject,
-        properties: { serviceTaskOperatorId: value },
-    });
-};
-
-
-
-  const getValue = () => {
-    return serviceTaskParameterModdleElement.value;
-  };
-
-  return TextFieldEntry({
-    element,
-    id: `${idPrefix}-textField`,
-    getValue,
-    setValue,
+    getOptions: () => getOptions(),
     debounce,
   });
 }
 
-export function ServiceTaskResultTextInput(props) {
-  const { element, translate, commandStack } = props;
+export function ServiceTaskParameterArray(props) {
+  const { element, commandStack } = props;
+  const serviceTaskParameterModdleElements = getServiceTaskParameterModdleElements(element);
 
+  return {
+    items: serviceTaskParameterModdleElements.map((param, index) => ({
+      id: `serviceTaskParameter-${index}`,
+      label: param.id,
+      entries: serviceTaskParameterEntries({
+        idPrefix: `serviceTaskParameter-${index}`,
+        element,
+        serviceTaskParameterModdleElement: param,
+        commandStack,
+      }),
+      autoFocusEntry: `serviceTaskParameter-${index}`,
+    })),
+  };
+}
+
+function serviceTaskParameterEntries({ idPrefix, serviceTaskParameterModdleElement, commandStack }) {
+  return [{
+    idPrefix: `${idPrefix}-parameter`,
+    component: ServiceTaskParameterTextField,
+    serviceTaskParameterModdleElement,
+    commandStack,
+  }];
+}
+
+function ServiceTaskParameterTextField({ idPrefix, element, serviceTaskParameterModdleElement, commandStack }) {
   const debounce = useService('debounceInput');
-  const serviceTaskOperatorModdleElement =
-    getServiceTaskOperatorModdleElement(element);
 
-  const setValue = (value) => {
-    commandStack.execute('element.updateModdleProperties', {
+  return TextFieldEntry({
+    element,
+    id: `${idPrefix}-textField`,
+    getValue: () => serviceTaskParameterModdleElement.value || "",
+    setValue: (value) => commandStack.execute('element.updateModdleProperties', {
       element,
-      moddleElement: serviceTaskOperatorModdleElement,
-      properties: {
-        resultVariable: value,
-      },
-    });
-  };
-
-  const getValue = () => {
-    if (serviceTaskOperatorModdleElement) {
-      return serviceTaskOperatorModdleElement.resultVariable;
-    }
-    return '';
-  };
-
-  if (serviceTaskOperatorModdleElement) {
-    return TextFieldEntry({
-      element,
-      label: translate('Response Variable'),
-      description: translate(
-        'response will be saved to this variable.  Leave empty to discard the response.'
-      ),
-      id: `result-textField`,
-      getValue,
-      setValue,
-      debounce,
-    });
-  }
-  return null;
+      moddleElement: serviceTaskParameterModdleElement,
+      properties: { value },
+    }),
+    debounce,
+  });
 }
