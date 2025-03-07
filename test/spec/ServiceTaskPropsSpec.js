@@ -98,6 +98,13 @@ describe('Properties Panel for Service Tasks', function () {
 
     // THEN - a select list appears and is populated by a list of known services
     const selectList = findSelect(entry);
+    selectList.classList.add("group-entry-dropdown");
+
+    // Apply styles to options
+    const options = selectList.options;
+    for (let option of options) {
+      option.classList.add("dropdown-option"); // ✅ Ensure filtering applies correctly
+    }
     expect(selectList).to.exist;
     expect(selectList.options.length).to.equal(2)
     expect(selectList.options[0].label).to.equal('ExampleService')
