@@ -86,7 +86,7 @@ describe('Properties Panel for Service Tasks', function () {
     expect(group).to.exist;
   });
 
-  it('should display a list of services to select from.', async function () {
+  it('should display a scrollable list of services to select from.', async function () {
     await preparePropertiesPanelWithXml(diagramXml)();
     const modeler = getBpmnJS();
     addServicesToModeler(modeler);
@@ -98,19 +98,25 @@ describe('Properties Panel for Service Tasks', function () {
 
     // THEN - a select list appears and is populated by a list of known services
     const selectList = findSelect(entry);
-    selectList.classList.add("group-entry-dropdown");
-
-    // Apply styles to options
-    const options = selectList.options;
-    for (let option of options) {
-      option.classList.add("dropdown-option"); // ✅ Ensure filtering applies correctly
-    }
     expect(selectList).to.exist;
-    expect(selectList.options.length).to.equal(2)
-    expect(selectList.options[0].label).to.equal('ExampleService')
-    expect(selectList.options[1].label).to.equal('ExampleService2')
-  });
+    expect(selectList.options.length).to.equal(2);
+    expect(selectList.options[0].label).to.equal('ExampleService');
+    expect(selectList.options[1].label).to.equal('ExampleService2');
 
+    // ✅ Ensure it is scrollable
+    expect(selectList.style.maxHeight).to.equal("150px");
+
+    // ✅ Ensure search input exists
+    const searchInput = domQuery('.search-input', group);
+    expect(searchInput).to.exist;
+
+    // ✅ Simulate searching
+    searchInput.value = 'ExampleService2';
+    searchInput.dispatchEvent(new Event('input'));
+
+    // ✅ Ensure only filtered results are shown
+    expect(selectList.options[0].label).to.equal('ExampleService2');
+});
 
 
 });
