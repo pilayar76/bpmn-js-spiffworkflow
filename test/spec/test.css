@@ -40,7 +40,7 @@ html, body, .modeler-container, .modeler-container > div {
 }
 
 /* Scrollable dropdown */
-.group-entry-dropdown {
+.bpmn-dropdown-container {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #ccc;
@@ -49,7 +49,7 @@ html, body, .modeler-container, .modeler-container > div {
 }
 
 /* Search input inside dropdown */
-.search-input {
+.bpmn-search-input {
   width: 100%;
   padding: 8px;
   font-size: 14px;
@@ -59,13 +59,14 @@ html, body, .modeler-container, .modeler-container > div {
 }
 
 /* Style dropdown options */
-.dropdown-option {
+.bpmn-dropdown-option {
   padding: 10px;
   cursor: pointer;
   font-size: 14px;
 }
 
 /* Highlight options on hover */
-.dropdown-option:hover {
+.bpmn-dropdown-option:hover {
   background-color: #f0f0f0;
 }
+

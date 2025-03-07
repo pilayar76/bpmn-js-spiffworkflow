@@ -108,64 +108,67 @@ export function ServiceTaskOperatorSelect(props) {
 
   const getOptions = (searchTerm = "") => {
     if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
-      console.error("Error: serviceTaskOperators is empty or not an array.");
-      return [];
+        console.error("Error: serviceTaskOperators is empty or not an array.");
+        return [];
     }
 
     const groupedOptions = {
-      "Notification": [],
-      "Dial": [],
-      "DNE Core": [],
-      "Data Processing": [],
-      "Spark Proxy": [],
-      "Broker": [],
-      "AWS": [],
-      "3rd Party Connectors": [],
-      "Database": [],
-      "Utility Tasks": [],
-      "Others": []
+        "Notification": [],
+        "Dial": [],
+        "DNE Core": [],
+        "Data Processing": [],
+        "Spark Proxy": [],
+        "Broker": [],
+        "AWS": [],
+        "3rd Party Connectors": [],
+        "Database": [],
+        "Utility Tasks": [],
+        "Others": []
     };
 
     serviceTaskOperators.forEach((sto) => {
-      if (!sto.id) return;
+        if (!sto.id) return;
 
-      let category = "Others";
+        let category = "Others";
+        if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) {
+            category = "Notification";
+        } else if (sto.id.includes("dial")) {
+            category = "Dial";
+        } else if (sto.id.includes("dne")) {
+            category = "DNE Core";
+        } else if (sto.id.includes("http")) {
+            category = "Data Processing";
+        } else if (sto.id.includes("spark")) {
+            category = "Spark Proxy";
+        } else if (sto.id.includes("kafka")) {
+            category = "Broker";
+        } else if (sto.id.includes("aws")) {
+            category = "AWS";
+        } else if (sto.id.includes("plannet")) {
+            category = "3rd Party Connectors";
+        } else if (sto.id.includes("mysql")) {
+            category = "Database";
+        } else if (sto.id.includes("utility") || sto.id.includes("generic")) {
+            category = "Utility Tasks";
+        }
 
-      if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) {
-        category = "Notification";
-      } else if (sto.id.includes("dial")) {
-        category = "Dial";
-      } else if (sto.id.includes("dne")) {
-        category = "DNE Core";
-      } else if (sto.id.includes("http")) {
-        category = "Data Processing";
-      } else if (sto.id.includes("spark")) {
-        category = "Spark Proxy";
-      } else if (sto.id.includes("kafka")) {
-        category = "Broker";
-      } else if (sto.id.includes("aws")) {
-        category = "AWS";
-      } else if (sto.id.includes("plannet")) {
-        category = "3rd Party Connectors";
-      } else if (sto.id.includes("mysql")) {
-        category = "Database";
-      } else if (sto.id.includes("utility") || sto.id.includes("generic")) {
-        category = "Utility Tasks";
-      }
-
-      groupedOptions[category].push({ label: sto.id, value: sto.id });
+        groupedOptions[category].push({
+            label: sto.id,
+            value: sto.id
+        });
     });
 
     let categorizedOptions = [];
     Object.entries(groupedOptions)
-      .filter(([_, options]) => options.length > 0)
-      .forEach(([category, options]) => {
-        categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
-        categorizedOptions = categorizedOptions.concat(options);
-      });
+        .filter(([_, options]) => options.length > 0)
+        .forEach(([category, options]) => {
+            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
+            categorizedOptions = categorizedOptions.concat(options.slice(0, 5)); // ✅ Show max 5 items per category
+        });
 
     return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No available options", value: "", disabled: true }];
-  };
+};
+
 
   return SelectEntry({
     id: 'selectOperatorId',
