@@ -62,49 +62,29 @@ export function ServiceTaskOperatorSelect(props) {
 
     const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
     if (!serviceTaskOperator) {
-      console.error(`Could not find service task operator with id: ${value}`);
-      return;
+        console.error(`Could not find service task operator with id: ${value}`);
+        return;
     }
 
     const { businessObject } = element;
     let extensions = businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
 
-    const oldServiceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(element);
+    // ✅ Ensure only one serviceTaskOperator is selected
+    extensions.values = extensions.values.filter(extValue => extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME);
 
     const newServiceTaskOperatorModdleElement = moddle.create(SERVICE_TASK_OPERATOR_ELEMENT_NAME);
     newServiceTaskOperatorModdleElement.id = value;
 
-    let newParameterList;
-    if (previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id]?.[value]) {
-      newParameterList = previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value];
-    } else {
-      newParameterList = moddle.create(SERVICE_TASK_PARAMETERS_ELEMENT_NAME);
-      newParameterList.parameters = serviceTaskOperator.parameters.map(stoParameter => {
-        const newParameterModdleElement = moddle.create(SERVICE_TASK_PARAMETER_ELEMENT_NAME);
-        newParameterModdleElement.id = stoParameter.id;
-        newParameterModdleElement.type = stoParameter.type;
-        return newParameterModdleElement;
-      });
-
-      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id] ||= {};
-      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value] = newParameterList;
-      if (oldServiceTaskOperatorModdleElement) {
-        previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][oldServiceTaskOperatorModdleElement.id] = oldServiceTaskOperatorModdleElement.parameterList;
-      }
-    }
-
-    newServiceTaskOperatorModdleElement.parameterList = newParameterList;
-
-    extensions.values = extensions.values.filter(extValue => extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME);
     extensions.values.push(newServiceTaskOperatorModdleElement);
     businessObject.extensionElements = extensions;
 
     commandStack.execute('element.updateModdleProperties', {
-      element,
-      moddleElement: businessObject,
-      properties: {},
+        element,
+        moddleElement: businessObject,
+        properties: {},
     });
-  };
+};
+
 
   const getOptions = (searchTerm = "") => {
     if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
@@ -163,22 +143,24 @@ export function ServiceTaskOperatorSelect(props) {
         .filter(([_, options]) => options.length > 0)
         .forEach(([category, options]) => {
             categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
-            categorizedOptions = categorizedOptions.concat(options.slice(0, 5)); // ✅ Show max 5 items per category
+            categorizedOptions = categorizedOptions.concat(options); // ✅ Show max 5 items per category
         });
 
     return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No available options", value: "", disabled: true }];
 };
 
 
-  return SelectEntry({
-    id: 'selectOperatorId',
-    element,
-    label: translate('Operator ID'),
-    getValue,
-    setValue,
-    getOptions: (searchTerm) => getOptions(searchTerm || ""),
-    debounce,
-  });
+return SelectEntry({
+  id: 'selectOperatorId',
+  element,
+  label: translate('Operator ID'),
+  getValue,
+  setValue,
+  getOptions: (searchTerm) => getOptions(searchTerm || ""),
+  debounce,
+  className: "bpmn-dropdown-container", // ✅ Ensure CSS class is applied
+});
+
 }
 
 export function ServiceTaskParameterArray(props) {

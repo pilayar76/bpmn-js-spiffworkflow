@@ -39,34 +39,20 @@ html, body, .modeler-container, .modeler-container > div {
   --font-family: 'IBM Plex Sans', sans-serif !important;
 }
 
-/* Scrollable dropdown */
+/* Force dropdown container to be scrollable */
 .bpmn-dropdown-container {
-  max-height: 200px;
-  overflow-y: auto;
+  max-height: 200px !important;  /* ✅ Ensures the dropdown has limited height */
+  overflow-y: auto !important;   /* ✅ Enables vertical scrolling */
   border: 1px solid #ccc;
   background: white;
   font-size: 14px;
 }
 
-/* Search input inside dropdown */
-.bpmn-search-input {
+/* Ensure select options fit inside the scrollable container */
+.bpmn-dropdown-container select {
+  display: block;
   width: 100%;
-  padding: 8px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-bottom: 5px;
-}
-
-/* Style dropdown options */
-.bpmn-dropdown-option {
-  padding: 10px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-/* Highlight options on hover */
-.bpmn-dropdown-option:hover {
-  background-color: #f0f0f0;
+  max-height: 150px !important;
+  overflow-y: auto !important;
 }
 
