@@ -154,8 +154,19 @@ export function findButtonByClass(buttonClass, container) {
 }
 
 export function findSelect(container) {
-  return domQuery('select', container);
+  const selectElement = domQuery('select', container);
+
+  if (selectElement) {
+    selectElement.classList.add("group-entry-dropdown");
+
+    // Apply max height for scrollability
+    selectElement.style.maxHeight = "150px";
+    selectElement.style.overflowY = "auto";
+  }
+
+  return selectElement;
 }
+
 
 export function changeInput(input, value) {
   fireEvent.input(input, { target: { value } });
