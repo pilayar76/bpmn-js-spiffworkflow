@@ -94,48 +94,8 @@ export function findEntry(id, container) {
 }
 
 export function findGroupEntry(id, container) {
-  const groupEntry = domQuery(`[data-group-id='group-${id}']`, container);
-
-  if (!groupEntry) {
-    return null;
-  }
-
-  // Ensure the dropdown is styled with scroll
-  groupEntry.style.maxHeight = "200px"; // ✅ Enables scrolling
-  groupEntry.style.overflowY = "auto"; // ✅ Scrollbar if content overflows
-  groupEntry.style.border = "1px solid #ccc";
-  groupEntry.style.borderRadius = "4px";
-  groupEntry.style.padding = "10px";
-  groupEntry.style.backgroundColor = "#fff";
-
-  // Create search input
-  let searchInput = document.createElement("input");
-  searchInput.type = "text";
-  searchInput.placeholder = "Search...";
-  searchInput.classList.add("search-input");
-  searchInput.style.width = "100%";
-  searchInput.style.marginBottom = "5px";
-  searchInput.style.padding = "5px";
-  searchInput.style.border = "1px solid #ddd";
-  searchInput.style.borderRadius = "4px";
-
-  // Insert search input at the beginning of the group entry
-  groupEntry.insertBefore(searchInput, groupEntry.firstChild);
-
-  // Function to filter list items
-  searchInput.addEventListener("input", function () {
-    let filter = searchInput.value.toLowerCase();
-    let options = groupEntry.querySelectorAll(".dropdown-option");
-
-    options.forEach((option) => {
-      let text = option.textContent || option.innerText;
-      option.style.display = text.toLowerCase().includes(filter) ? "" : "none";
-    });
-  });
-
-  return groupEntry;
+  return domQuery(`[data-group-id='group-${id}']`, container);
 }
-
 
 export function findInput(type, container) {
   return domQuery(`input[type='${type}']`, container);
@@ -154,19 +114,8 @@ export function findButtonByClass(buttonClass, container) {
 }
 
 export function findSelect(container) {
-  const selectElement = domQuery('select', container);
-
-  if (selectElement) {
-    selectElement.classList.add("group-entry-dropdown");
-
-    // Apply max height for scrollability
-    selectElement.style.maxHeight = "150px";
-    selectElement.style.overflowY = "auto";
-  }
-
-  return selectElement;
+  return domQuery('select', container);
 }
-
 
 export function changeInput(input, value) {
   fireEvent.input(input, { target: { value } });
