@@ -38,3 +38,35 @@ html, body, .modeler-container, .modeler-container > div {
 .properties-container .bio-properties-panel {
   --font-family: 'IBM Plex Sans', sans-serif !important;
 }
+
+/* Style the search input */
+.search-input {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+/* Make the dropdown scrollable */
+.group-entry-dropdown {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px;
+  background-color: white;
+}
+
+/* Style individual dropdown options */
+.dropdown-option {
+  padding: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Highlight options on hover */
+.dropdown-option:hover {
+  background-color: #f0f0f0;
+}
