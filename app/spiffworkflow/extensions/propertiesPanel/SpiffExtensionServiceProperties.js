@@ -177,3 +177,108 @@ export function ServiceTaskOperatorSelect(props) {
     debounce,
   });
 }
+
+export function ServiceTaskParameterArray(props) {
+  const { element, commandStack } = props;
+
+  const serviceTaskParameterModdleElements =
+    getServiceTaskParameterModdleElements(element);
+  const items = serviceTaskParameterModdleElements.map(
+    (serviceTaskParameterModdleElement, index) => {
+      const id = `serviceTaskParameter-${index}`;
+      return {
+        id,
+        label: serviceTaskParameterModdleElement.id,
+        entries: serviceTaskParameterEntries({
+          idPrefix: id,
+          element,
+          serviceTaskParameterModdleElement,
+          commandStack,
+        }),
+        autoFocusEntry: id,
+      };
+    }
+  );
+  return { items };
+}
+
+function serviceTaskParameterEntries(props) {
+  const { idPrefix, serviceTaskParameterModdleElement, commandStack } = props;
+  return [
+    {
+      idPrefix: `${idPrefix}-parameter`,
+      component: ServiceTaskParameterTextField,
+      serviceTaskParameterModdleElement,
+      commandStack,
+    },
+  ];
+}
+
+function ServiceTaskParameterTextField(props) {
+  const { idPrefix, element, serviceTaskParameterModdleElement, commandStack } = props;
+
+  const debounce = useService('debounceInput');
+
+  const setValue = (value) => {
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: serviceTaskParameterModdleElement,
+      properties: {
+        value: value,
+      },
+    });
+  };
+
+
+  const getValue = () => {
+    return serviceTaskParameterModdleElement.value;
+  };
+
+  return TextFieldEntry({
+    element,
+    id: `${idPrefix}-textField`,
+    getValue,
+    setValue,
+    debounce,
+  });
+}
+
+export function ServiceTaskResultTextInput(props) {
+  const { element, translate, commandStack } = props;
+
+  const debounce = useService('debounceInput');
+  const serviceTaskOperatorModdleElement =
+    getServiceTaskOperatorModdleElement(element);
+
+  const setValue = (value) => {
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: serviceTaskOperatorModdleElement,
+      properties: {
+        resultVariable: value,
+      },
+    });
+  };
+
+  const getValue = () => {
+    if (serviceTaskOperatorModdleElement) {
+      return serviceTaskOperatorModdleElement.resultVariable;
+    }
+    return '';
+  };
+
+  if (serviceTaskOperatorModdleElement) {
+    return TextFieldEntry({
+      element,
+      label: translate('Response Variable'),
+      description: translate(
+        'response will be saved to this variable.  Leave empty to discard the response.'
+      ),
+      id: `result-textField`,
+      getValue,
+      setValue,
+      debounce,
+    });
+  }
+  return null;
+}
