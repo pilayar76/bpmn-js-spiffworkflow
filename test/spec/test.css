@@ -41,20 +41,23 @@ html, body, .modeler-container, .modeler-container > div {
   max-height: 90% !important; /* ✅ Reduce max height */
 }
 
-/* Restrict dropdown height to a smaller value */
-.bio-properties-panel select {
-  max-height: 100px !important;  /* ✅ Limit dropdown height */
-  overflow-y: auto !important;   /* ✅ Enable scrolling */
-  border: 1px solid #ccc;
-  background: white;
+/* Scrollable dropdown */
+.bpmn-dropdown-container {
+  width: 100%;
   font-size: 14px;
 }
 
-/* Restrict dropdown menu height */
-.bio-properties-panel .bpmn-dropdown-container {
-  max-height: 100px !important;  /* ✅ Reduced from 200px to 100px */
+.bpmn-dropdown-container select {
+  max-height: 150px !important;
   overflow-y: auto !important;
   border: 1px solid #ccc;
   background: white;
+  font-size: 14px;
+  cursor: pointer;
 }
 
+/* Style react-select dropdown */
+.bpmn-dropdown-container .css-1nmdiq5-menu {
+  max-height: 150px !important; /* ✅ Ensures dropdown has a max height */
+  overflow-y: auto !important;
+}

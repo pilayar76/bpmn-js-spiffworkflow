@@ -1,19 +1,16 @@
 import { useService } from 'bpmn-js-properties-panel';
-import { TextFieldEntry, SelectEntry } from '@bpmn-io/properties-panel';
+import { TextFieldEntry } from '@bpmn-io/properties-panel';
+import Select from 'react-select';
 import { SPIFFWORKFLOW_XML_NAMESPACE } from '../../constants';
 
 let serviceTaskOperators = [];
 
-// Cache service task parameters for easy retrieval
 const previouslyUsedServiceTaskParameterValuesHash = {};
 
 const SERVICE_TASK_OPERATOR_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:ServiceTaskOperator`;
 const SERVICE_TASK_PARAMETERS_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameters`;
 const SERVICE_TASK_PARAMETER_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameter`;
 
-/**
- * Fetch available service tasks dynamically and update the list
- */
 function requestServiceTaskOperators(eventBus, element, commandStack) {
   eventBus.fire('spiff.service_tasks.requested', { eventBus });
   eventBus.on('spiff.service_tasks.returned', (event) => {
@@ -23,28 +20,13 @@ function requestServiceTaskOperators(eventBus, element, commandStack) {
   });
 }
 
-/**
- * Get the moddle element for a selected service task operator
- */
 function getServiceTaskOperatorModdleElement(shapeElement) {
   const { extensionElements } = shapeElement.businessObject;
   return extensionElements?.values?.find(ee => ee.$type === SERVICE_TASK_OPERATOR_ELEMENT_NAME) || null;
 }
 
-/**
- * Get service task parameters from moddle element
- */
-function getServiceTaskParameterModdleElements(shapeElement) {
-  const serviceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(shapeElement);
-  return serviceTaskOperatorModdleElement?.parameterList?.parameters || [];
-}
-
-/**
- * Component for selecting a service task operator
- */
 export function ServiceTaskOperatorSelect(props) {
   const { element, commandStack, translate, moddle } = props;
-
   const debounce = useService('debounceInput');
   const eventBus = useService('eventBus');
 
@@ -54,22 +36,22 @@ export function ServiceTaskOperatorSelect(props) {
 
   const getValue = () => {
     const serviceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(element);
-    return serviceTaskOperatorModdleElement?.id || '';
+    return serviceTaskOperatorModdleElement?.id || null;
   };
 
-  const setValue = (value) => {
-    if (!value) return;
+  const setValue = (selectedOption) => {
+    if (!selectedOption) return;
 
+    const value = selectedOption.value;
     const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
     if (!serviceTaskOperator) {
-        console.error(`Could not find service task operator with id: ${value}`);
-        return;
+      console.error(`Could not find service task operator with id: ${value}`);
+      return;
     }
 
     const { businessObject } = element;
     let extensions = businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
 
-    // ✅ Ensure only one serviceTaskOperator is selected
     extensions.values = extensions.values.filter(extValue => extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME);
 
     const newServiceTaskOperatorModdleElement = moddle.create(SERVICE_TASK_OPERATOR_ELEMENT_NAME);
@@ -79,88 +61,77 @@ export function ServiceTaskOperatorSelect(props) {
     businessObject.extensionElements = extensions;
 
     commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: businessObject,
-        properties: {},
+      element,
+      moddleElement: businessObject,
+      properties: {},
     });
-};
+  };
 
-
-  const getOptions = (searchTerm = "") => {
+  const getOptions = () => {
     if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
-        console.error("Error: serviceTaskOperators is empty or not an array.");
-        return [];
+      console.error("Error: serviceTaskOperators is empty or not an array.");
+      return [];
     }
 
-    const groupedOptions = {
-        "Notification": [],
-        "Dial": [],
-        "DNE Core": [],
-        "Data Processing": [],
-        "Spark Proxy": [],
-        "Broker": [],
-        "AWS": [],
-        "3rd Party Connectors": [],
-        "Database": [],
-        "Utility Tasks": [],
-        "Others": []
-    };
+    const groupedOptions = [
+      { label: "Notification", options: [] },
+      { label: "Dial", options: [] },
+      { label: "DNE Core", options: [] },
+      { label: "Data Processing", options: [] },
+      { label: "Spark Proxy", options: [] },
+      { label: "Broker", options: [] },
+      { label: "AWS", options: [] },
+      { label: "3rd Party Connectors", options: [] },
+      { label: "Database", options: [] },
+      { label: "Utility Tasks", options: [] },
+      { label: "Others", options: [] }
+    ];
 
     serviceTaskOperators.forEach((sto) => {
-        if (!sto.id) return;
+      if (!sto.id) return;
 
-        let category = "Others";
-        if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) {
-            category = "Notification";
-        } else if (sto.id.includes("dial")) {
-            category = "Dial";
-        } else if (sto.id.includes("dne")) {
-            category = "DNE Core";
-        } else if (sto.id.includes("http")) {
-            category = "Data Processing";
-        } else if (sto.id.includes("spark")) {
-            category = "Spark Proxy";
-        } else if (sto.id.includes("kafka")) {
-            category = "Broker";
-        } else if (sto.id.includes("aws")) {
-            category = "AWS";
-        } else if (sto.id.includes("plannet")) {
-            category = "3rd Party Connectors";
-        } else if (sto.id.includes("mysql")) {
-            category = "Database";
-        } else if (sto.id.includes("utility") || sto.id.includes("generic")) {
-            category = "Utility Tasks";
-        }
+      let categoryIndex = 10;  // Default to "Others"
+      if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) categoryIndex = 0;
+      else if (sto.id.includes("dial")) categoryIndex = 1;
+      else if (sto.id.includes("dne")) categoryIndex = 2;
+      else if (sto.id.includes("http")) categoryIndex = 3;
+      else if (sto.id.includes("spark")) categoryIndex = 4;
+      else if (sto.id.includes("kafka")) categoryIndex = 5;
+      else if (sto.id.includes("aws")) categoryIndex = 6;
+      else if (sto.id.includes("plannet")) categoryIndex = 7;
+      else if (sto.id.includes("mysql")) categoryIndex = 8;
+      else if (sto.id.includes("utility") || sto.id.includes("generic")) categoryIndex = 9;
 
-        groupedOptions[category].push({
-            label: sto.id,
-            value: sto.id
-        });
+      groupedOptions[categoryIndex].options.push({ label: sto.id, value: sto.id });
     });
 
-    let categorizedOptions = [];
-    Object.entries(groupedOptions)
-        .filter(([_, options]) => options.length > 0)
-        .forEach(([category, options]) => {
-            categorizedOptions.push({ label: `--- ${category} ---`, value: "", disabled: true });
-            categorizedOptions = categorizedOptions.concat(options); // ✅ Show max 5 items per category
-        });
+    return groupedOptions.filter(group => group.options.length > 0);
+  };
 
-    return categorizedOptions.length > 0 ? categorizedOptions : [{ label: "No available options", value: "", disabled: true }];
-};
-
-
-return SelectEntry({
-  id: 'selectOperatorId',
-  element,
-  label: translate('Operator ID'),
-  getValue,
-  setValue,
-  getOptions: (searchTerm) => getOptions(searchTerm || ""),
-  debounce,
-  className: "bpmn-dropdown-container", // ✅ Ensure CSS class is applied
-});
-
+  return (
+    <div className="bpmn-dropdown-container">
+      <label className="bpmn-dropdown-label">{translate('Operator ID')}</label>
+      <Select
+        options={getOptions()}
+        value={getOptions().flatMap(group => group.options).find(opt => opt.value === getValue()) || null}
+        onChange={setValue}
+        placeholder="Select an operator..."
+        isSearchable={true} // ✅ Enables search
+        isClearable={true}  // ✅ Allows clearing selection
+        styles={{
+          menu: provided => ({
+            ...provided,
+            maxHeight: "150px", // ✅ Enforces scrolling
+            overflowY: "auto"
+          }),
+          control: provided => ({
+            ...provided,
+            cursor: "pointer"
+          })
+        }}
+      />
+    </div>
+  );
 }
 
 export function ServiceTaskParameterArray(props) {
