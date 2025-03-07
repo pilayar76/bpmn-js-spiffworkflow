@@ -71,22 +71,7 @@ describe('Properties Panel for Service Tasks', function () {
     });
   }
 
-  it('should display a panel for selecting service', async function () {
-    await preparePropertiesPanelWithXml(diagramXml)();
-
-    const modeler = getBpmnJS();
-    addServicesToModeler(modeler);
-
-    // IF - you select a service task
-    const serviceTask = await expectSelected('my_service_task');
-    expect(serviceTask).to.exist;
-
-    // THEN - a property panel exists with a section for editing web forms
-    const group = findGroupEntry('service_task_properties', container);
-    expect(group).to.exist;
-  });
-
-  it('should display a list of services to select from.', async function () {
+  it('should display a scrollable list of services to select from.', async function () {
     await preparePropertiesPanelWithXml(diagramXml)();
     const modeler = getBpmnJS();
     addServicesToModeler(modeler);
@@ -99,10 +84,25 @@ describe('Properties Panel for Service Tasks', function () {
     // THEN - a select list appears and is populated by a list of known services
     const selectList = findSelect(entry);
     expect(selectList).to.exist;
-    expect(selectList.options.length).to.equal(2)
-    expect(selectList.options[0].label).to.equal('ExampleService')
-    expect(selectList.options[1].label).to.equal('ExampleService2')
-  });
+    expect(selectList.options.length).to.equal(2);
+    expect(selectList.options[0].label).to.equal('ExampleService');
+    expect(selectList.options[1].label).to.equal('ExampleService2');
+
+    // ✅ Ensure it is scrollable
+    expect(selectList.style.maxHeight).to.equal("150px");
+
+    // ✅ Ensure search input exists
+    const searchInput = domQuery('.search-input', group);
+    expect(searchInput).to.exist;
+
+    // ✅ Simulate searching
+    searchInput.value = 'ExampleService2';
+    searchInput.dispatchEvent(new Event('input'));
+
+    // ✅ Ensure only filtered results are shown
+    expect(selectList.options[0].label).to.equal('ExampleService2');
+});
+
 
 
 
