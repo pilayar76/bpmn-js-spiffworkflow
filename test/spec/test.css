@@ -37,27 +37,4 @@ html, body, .modeler-container, .modeler-container > div {
 
 .properties-container .bio-properties-panel {
   --font-family: 'IBM Plex Sans', sans-serif !important;
-  overflow-y: auto !important;
-  max-height: 90% !important; /* ✅ Reduce max height */
-}
-
-/* Scrollable dropdown */
-.bpmn-dropdown-container {
-  width: 100%;
-  font-size: 14px;
-}
-
-.bpmn-dropdown-container select {
-  max-height: 150px !important;
-  overflow-y: auto !important;
-  border: 1px solid #ccc;
-  background: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-/* Style react-select dropdown */
-.bpmn-dropdown-container .css-1nmdiq5-menu {
-  max-height: 150px !important; /* ✅ Ensures dropdown has a max height */
-  overflow-y: auto !important;
 }

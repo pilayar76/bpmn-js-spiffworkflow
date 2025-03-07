@@ -1,63 +1,166 @@
 import { useService } from 'bpmn-js-properties-panel';
-import { TextFieldEntry } from '@bpmn-io/properties-panel';
-import Select from 'react-select';
+import { TextFieldEntry, SelectEntry } from '@bpmn-io/properties-panel';
 import { SPIFFWORKFLOW_XML_NAMESPACE } from '../../constants';
 
 let serviceTaskOperators = [];
 
+// This stores the parameters for a given service task operator
+//  so that we can remember the values when switching between them
+// the values should be the list of moddle elements that we push onto
+//  the parameterList of service task operator and the key should be
+//  the service task operator id
 const previouslyUsedServiceTaskParameterValuesHash = {};
 
+const LOW_PRIORITY = 500;
+// I'm not going to change these variable names, but this is actually the name of the modeller
+// type (as defined in moddle/spiffworkflow.json) NOT the element name (which is lowercase)
 const SERVICE_TASK_OPERATOR_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:ServiceTaskOperator`;
 const SERVICE_TASK_PARAMETERS_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameters`;
 const SERVICE_TASK_PARAMETER_ELEMENT_NAME = `${SPIFFWORKFLOW_XML_NAMESPACE}:Parameter`;
+
+/**
+ * A generic properties' editor for text input.
+ * Allows you to provide additional SpiffWorkflow extension properties.  Just
+ * uses whatever name is provide on the property, and adds or updates it as
+ * needed.
+ *
+ *
+    <bpmn:serviceTask id="service_task_one" name="Service Task One">
+      <bpmn:extensionElements>
+        <spiffworkflow:serviceTaskOperator id="SlackWebhookOperator" resultVariable="result">
+          <spiffworkflow:parameters>
+            <spiffworkflow:parameter name="webhook_token" type="string" value="token" />
+            <spiffworkflow:parameter name="message" type="string" value="ServiceTask testing" />
+            <spiffworkflow:parameter name="channel" type="string" value="#" />
+          </spiffworkflow:parameters>
+        </spiffworkflow:serviceTaskOperator>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+ *
+ * @returns {string|null|*}
+ */
 
 function requestServiceTaskOperators(eventBus, element, commandStack) {
   eventBus.fire('spiff.service_tasks.requested', { eventBus });
   eventBus.on('spiff.service_tasks.returned', (event) => {
     if (event.serviceTaskOperators.length > 0) {
-      serviceTaskOperators = event.serviceTaskOperators;
+      serviceTaskOperators = event.serviceTaskOperators.sort((a, b) =>
+        a.id.localeCompare(b.id)
+      );
     }
   });
 }
 
 function getServiceTaskOperatorModdleElement(shapeElement) {
   const { extensionElements } = shapeElement.businessObject;
-  return extensionElements?.values?.find(ee => ee.$type === SERVICE_TASK_OPERATOR_ELEMENT_NAME) || null;
+  if (extensionElements) {
+    for (const ee of extensionElements.values) {
+      if (ee.$type === SERVICE_TASK_OPERATOR_ELEMENT_NAME) {
+        return ee;
+      }
+    }
+  }
+  return null;
+}
+
+function getServiceTaskParameterModdleElements(shapeElement) {
+  const serviceTaskOperatorModdleElement =
+    getServiceTaskOperatorModdleElement(shapeElement);
+  if (serviceTaskOperatorModdleElement) {
+    const { parameterList } = serviceTaskOperatorModdleElement;
+    if (parameterList) {
+      return parameterList.parameters.sort((a, b) => a.id.localeCompare(b.id));
+    }
+  }
+  return [];
 }
 
 export function ServiceTaskOperatorSelect(props) {
-  const { element, commandStack, translate, moddle } = props;
+  const { element } = props;
+  const { commandStack } = props;
+  const { translate } = props;
+  const { moddle } = props;
+
   const debounce = useService('debounceInput');
   const eventBus = useService('eventBus');
 
-  if (!serviceTaskOperators.length) {
+  if (serviceTaskOperators.length === 0) {
     requestServiceTaskOperators(eventBus, element, commandStack);
   }
 
   const getValue = () => {
-    const serviceTaskOperatorModdleElement = getServiceTaskOperatorModdleElement(element);
-    return serviceTaskOperatorModdleElement?.id || null;
+    const serviceTaskOperatorModdleElement =
+      getServiceTaskOperatorModdleElement(element);
+    if (serviceTaskOperatorModdleElement) {
+      return serviceTaskOperatorModdleElement.id;
+    }
+    return '';
   };
 
-  const setValue = (selectedOption) => {
-    if (!selectedOption) return;
+  const setValue = (value) => {
+    if (!value) {
+      return;
+    }
 
-    const value = selectedOption.value;
-    const serviceTaskOperator = serviceTaskOperators.find(sto => sto.id === value);
+    const serviceTaskOperator = serviceTaskOperators.find(
+      (sto) => sto.id === value
+    );
     if (!serviceTaskOperator) {
       console.error(`Could not find service task operator with id: ${value}`);
       return;
     }
+    if (!(element.businessObject.id in previouslyUsedServiceTaskParameterValuesHash)) {
+      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id] = {}
+    }
+    const previouslyUsedServiceTaskParameterValues =
+      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][value];
 
     const { businessObject } = element;
-    let extensions = businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
+    let extensions = businessObject.extensionElements;
+    if (!extensions) {
+      extensions = moddle.create('bpmn:ExtensionElements');
+    }
 
-    extensions.values = extensions.values.filter(extValue => extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME);
+    const oldServiceTaskOperatorModdleElement =
+      getServiceTaskOperatorModdleElement(element);
 
-    const newServiceTaskOperatorModdleElement = moddle.create(SERVICE_TASK_OPERATOR_ELEMENT_NAME);
+    const newServiceTaskOperatorModdleElement = moddle.create(
+      SERVICE_TASK_OPERATOR_ELEMENT_NAME
+    );
     newServiceTaskOperatorModdleElement.id = value;
+    let newParameterList;
 
-    extensions.values.push(newServiceTaskOperatorModdleElement);
+    if (previouslyUsedServiceTaskParameterValues) {
+      newParameterList = previouslyUsedServiceTaskParameterValues;
+    } else {
+      newParameterList = moddle.create(SERVICE_TASK_PARAMETERS_ELEMENT_NAME);
+      newParameterList.parameters = [];
+      serviceTaskOperator.parameters.forEach((stoParameter) => {
+        const newParameterModdleElement = moddle.create(
+          SERVICE_TASK_PARAMETER_ELEMENT_NAME
+        );
+        newParameterModdleElement.id = stoParameter.id;
+        newParameterModdleElement.type = stoParameter.type;
+        newParameterList.parameters.push(newParameterModdleElement);
+      });
+
+      previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][
+        value
+      ] = newParameterList;
+      if (oldServiceTaskOperatorModdleElement) {
+        previouslyUsedServiceTaskParameterValuesHash[element.businessObject.id][
+          oldServiceTaskOperatorModdleElement.id
+        ] = oldServiceTaskOperatorModdleElement.parameterList;
+      }
+    }
+
+    newServiceTaskOperatorModdleElement.parameterList = newParameterList;
+
+    const newExtensionValues = extensions.get('values').filter((extValue) => {
+      return extValue.$type !== SERVICE_TASK_OPERATOR_ELEMENT_NAME;
+    });
+    newExtensionValues.push(newServiceTaskOperatorModdleElement);
+    extensions.values = newExtensionValues;
     businessObject.extensionElements = extensions;
 
     commandStack.execute('element.updateModdleProperties', {
@@ -68,70 +171,27 @@ export function ServiceTaskOperatorSelect(props) {
   };
 
   const getOptions = () => {
-    if (!Array.isArray(serviceTaskOperators) || serviceTaskOperators.length === 0) {
-      console.error("Error: serviceTaskOperators is empty or not an array.");
-      return [];
+    const optionList = [];
+    if (serviceTaskOperators) {
+      serviceTaskOperators.forEach((sto) => {
+        optionList.push({
+          label: sto.id,
+          value: sto.id,
+        });
+      });
     }
-
-    const groupedOptions = [
-      { label: "Notification", options: [] },
-      { label: "Dial", options: [] },
-      { label: "DNE Core", options: [] },
-      { label: "Data Processing", options: [] },
-      { label: "Spark Proxy", options: [] },
-      { label: "Broker", options: [] },
-      { label: "AWS", options: [] },
-      { label: "3rd Party Connectors", options: [] },
-      { label: "Database", options: [] },
-      { label: "Utility Tasks", options: [] },
-      { label: "Others", options: [] }
-    ];
-
-    serviceTaskOperators.forEach((sto) => {
-      if (!sto.id) return;
-
-      let categoryIndex = 10;  // Default to "Others"
-      if (sto.id.includes("slack") || sto.id.includes("email") || sto.id.includes("smtp")) categoryIndex = 0;
-      else if (sto.id.includes("dial")) categoryIndex = 1;
-      else if (sto.id.includes("dne")) categoryIndex = 2;
-      else if (sto.id.includes("http")) categoryIndex = 3;
-      else if (sto.id.includes("spark")) categoryIndex = 4;
-      else if (sto.id.includes("kafka")) categoryIndex = 5;
-      else if (sto.id.includes("aws")) categoryIndex = 6;
-      else if (sto.id.includes("plannet")) categoryIndex = 7;
-      else if (sto.id.includes("mysql")) categoryIndex = 8;
-      else if (sto.id.includes("utility") || sto.id.includes("generic")) categoryIndex = 9;
-
-      groupedOptions[categoryIndex].options.push({ label: sto.id, value: sto.id });
-    });
-
-    return groupedOptions.filter(group => group.options.length > 0);
+    return optionList;
   };
 
-  return (
-    <div className="bpmn-dropdown-container">
-      <label className="bpmn-dropdown-label">{translate('Operator ID')}</label>
-      <Select
-        options={getOptions()}
-        value={getOptions().flatMap(group => group.options).find(opt => opt.value === getValue()) || null}
-        onChange={setValue}
-        placeholder="Select an operator..."
-        isSearchable={true} // ✅ Enables search
-        isClearable={true}  // ✅ Allows clearing selection
-        styles={{
-          menu: provided => ({
-            ...provided,
-            maxHeight: "150px", // ✅ Enforces scrolling
-            overflowY: "auto"
-          }),
-          control: provided => ({
-            ...provided,
-            cursor: "pointer"
-          })
-        }}
-      />
-    </div>
-  );
+  return SelectEntry({
+    id: 'selectOperatorId',
+    element,
+    label: translate('Operator ID'),
+    getValue,
+    setValue,
+    getOptions,
+    debounce,
+  });
 }
 
 export function ServiceTaskParameterArray(props) {
