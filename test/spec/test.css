@@ -37,22 +37,24 @@ html, body, .modeler-container, .modeler-container > div {
 
 .properties-container .bio-properties-panel {
   --font-family: 'IBM Plex Sans', sans-serif !important;
+  overflow-y: auto !important;
+  max-height: 90% !important; /* ✅ Reduce max height */
 }
 
-/* Force dropdown container to be scrollable */
-.bpmn-dropdown-container {
-  max-height: 200px !important;  /* ✅ Ensures the dropdown has limited height */
-  overflow-y: auto !important;   /* ✅ Enables vertical scrolling */
+/* Restrict dropdown height to a smaller value */
+.bio-properties-panel select {
+  max-height: 100px !important;  /* ✅ Limit dropdown height */
+  overflow-y: auto !important;   /* ✅ Enable scrolling */
   border: 1px solid #ccc;
   background: white;
   font-size: 14px;
 }
 
-/* Ensure select options fit inside the scrollable container */
-.bpmn-dropdown-container select {
-  display: block;
-  width: 100%;
-  max-height: 150px !important;
+/* Restrict dropdown menu height */
+.bio-properties-panel .bpmn-dropdown-container {
+  max-height: 100px !important;  /* ✅ Reduced from 200px to 100px */
   overflow-y: auto !important;
+  border: 1px solid #ccc;
+  background: white;
 }
 
